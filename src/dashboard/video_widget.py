@@ -1,15 +1,19 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSpacerItem, QSizePolicy, QApplication, QListWidget
+import cv2
+import numpy as np
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QImage, QPixmap
-from ..livesplit import LivesplitConnection
-from .livesplit_detector import LiveSplitDialog
-from ..virtual_cam import VideoCapture
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSpacerItem, QSizePolicy, \
+    QApplication, QListWidget
+
 from .crop_settings import CropSettingsWidget
-from ..start_detector import StartDetector  
-from .footage_popup import FootagePopup  
-import numpy as np
-import cv2
+from .footage_popup import FootagePopup
+from .livesplit_detector import LiveSplitDialog
+from ..fadeout_detector import FadeoutDetector
+from ..livesplit import LivesplitConnection
 from ..route_editor.route_editor import RouteEditor  # Import RouteEditor
+from ..start_detector import StartDetector
+from ..virtual_cam import VideoCapture
+
 
 class VideoWidget(QWidget):
     def __init__(self, parent=None):
@@ -17,13 +21,15 @@ class VideoWidget(QWidget):
         self.setWindowTitle("Select Video Device")
         self.init_ui()
         self.crop_settings = None
-        self.crop_params = (0, 0, 640, 480)  # Default crop parameters
+        self.crop_params = (0, 20, 640, 460)  # Default crop parameters
         self.livesplit = LivesplitConnection()  # Assuming the default IP and port
         self.livesplit.sig_connection_status.connect(self.update_livesplit_status)
         self.video_capture = VideoCapture()  # Initialize VideoCapture
-        self.start_detector = StartDetector()  # Initialize StartDetector
+        self.fadeout_detector = FadeoutDetector()  # Initialize FadeoutDetector
+        self.start_detector = StartDetector()
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
+        self.timer_started = False
 
     def init_ui(self):
         main_layout = QVBoxLayout()  # Changed from QHBoxLayout to QVBoxLayout
@@ -33,14 +39,15 @@ class VideoWidget(QWidget):
 
         self.split_list_widget = QListWidget()
         self.split_list_widget.setFixedWidth(200)  # Set fixed width for the list widget
+        self.split_list_widget.setFixedHeight(400)  # Set fixed width for the list widget
         self.split_list_widget.setStyleSheet("""
             QListWidget {
                 background-color: #252525;
                 color: white;
-                border: 1px solid #303030;
                 padding: 5px;
                 font-size: 18px;
                 font-family: Calibri;
+                outline: none;  /* Remove the dashed outline when the QListWidget is focused */
             }
             QListWidget::item {
                 background-color: #303030;
@@ -49,7 +56,7 @@ class VideoWidget(QWidget):
                 padding: 5px;
             }
             QListWidget::item:selected {
-                background-color: #00aaff;
+                background-color: black;
                 color: white;
             }
         """)
@@ -172,7 +179,7 @@ class VideoWidget(QWidget):
     def init_camera(self, device_index):
         print(f"Initializing camera with index {device_index}")
         self.video_capture.init_capture_device(device_index)
-        
+
         # Set fixed timer interval for 30 FPS
         interval = 1000 / 30
         self.timer.setInterval(int(interval))
@@ -190,24 +197,37 @@ class VideoWidget(QWidget):
             height = min(height, frame_height - y)
 
             # Apply cropping
-            frame = frame[y:y+height, x:x+width]
+            frame = frame[y:y + height, x:x + width]
             # Resize to fit the QLabel
             frame = cv2.resize(frame, (640, 480))
             # Convert the frame from BGR to RGB
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            if self.start_detector.detect(frame):
+            # Detect start time
+            if self.start_detector.detect(frame) and not self.timer_started:
                 print('Found needle. Start timer detected.')
                 self.livesplit.start_timer()
+                self.timer_started = True
 
+            # Detect fadeout using FadeoutDetector and if timer is started
+            if self.timer_started:
+                status = self.fadeout_detector.detect_fadeout(frame)
+                if status == 'fadeout':
+                    print('Fadeout detected (black screen).')
+                    self.livesplit.pause_timer()
+                elif status == 'fadein':
+                    print('Fadein detected.')
+                    self.livesplit.unpause_timer()
+
+            # Convert the frame to QImage and display
             image = QImage(rgb_frame.data, rgb_frame.shape[1], rgb_frame.shape[0], QImage.Format.Format_RGB888)
-            # Create QPixmap and explicitly resize it to 640x480
             pixmap = QPixmap.fromImage(image)
             self.video_label.setPixmap(pixmap)
         else:
             # Display a black screen if frame retrieval fails
             black_image = np.zeros((480, 640, 3), dtype=np.uint8)
-            black_qimage = QImage(black_image.data, black_image.shape[1], black_image.shape[0], QImage.Format.Format_RGB888)
+            black_qimage = QImage(black_image.data, black_image.shape[1], black_image.shape[0],
+                                  QImage.Format.Format_RGB888)
             black_pixmap = QPixmap.fromImage(black_qimage)
             self.video_label.setPixmap(black_pixmap)
 

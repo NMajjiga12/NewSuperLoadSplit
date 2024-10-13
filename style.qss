@@ -3,6 +3,7 @@
     color: white;
     font-size: 16px;
     font-family: Calibri;
+    background-color: #252525; /* Set a consistent background color */
 }
 
 /* Define styles for the 'title_icon' widget */
@@ -59,6 +60,7 @@ QListWidget,
     border: 0px;
     padding: 0px 10px;
     margin: 2px 0;
+    background-color: #252525; /* Set background color for consistency */
 }
 
 /* Border radius for '#listWidget' items */
@@ -88,7 +90,7 @@ QListWidget,
 /* Selected item styles for list items */
 #listWidget::item:selected,
 #listWidget_icon_only::item:selected {
-    background-color: #714f4f4f;
+    background-color: #4f4f4f; /* Updated to match theme consistency */
     color: white;
 }
 
@@ -122,11 +124,5 @@ QPushButton:hover {
 
 QPushButton:pressed {
     background-color: #00aaff;
-    color: white;
-}
-
-/* Selected button styles */
-QPushButton:checked {
-    background-color: #714f4f4f;
     color: white;
 }

@@ -14,19 +14,19 @@ class CropSettingsWidget(QWidget):
         main_layout = QVBoxLayout()
 
         self.x_input = QLineEdit()
-        self.x_input.setFixedHeight(30)  # Increase the height of the input box
+        self.x_input.setFixedHeight(20)  # Increase the height of the input box
         self.x_input.setObjectName("x_input")
 
         self.y_input = QLineEdit()
-        self.y_input.setFixedHeight(30)  # Increase the height of the input box
+        self.y_input.setFixedHeight(20)  # Increase the height of the input box
         self.y_input.setObjectName("y_input")
 
         self.width_input = QLineEdit()
-        self.width_input.setFixedHeight(30)  # Increase the height of the input box
+        self.width_input.setFixedHeight(20)  # Increase the height of the input box
         self.width_input.setObjectName("width_input")
 
         self.height_input = QLineEdit()
-        self.height_input.setFixedHeight(30)  # Increase the height of the input box
+        self.height_input.setFixedHeight(20)  # Increase the height of the input box
         self.height_input.setObjectName("height_input")
 
         input_layout = QVBoxLayout()
@@ -71,8 +71,6 @@ class CropSettingsWidget(QWidget):
                 color: white;
                 background-color: #252525;
                 border: none;
-                padding: 10px 20px;
-                border-radius: 5px;
                 font-size: 16px;
             }
 

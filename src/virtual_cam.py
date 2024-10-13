@@ -31,6 +31,7 @@ class VideoCapture(QObject):
 
         try:
             capture_device = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+            capture_device.set(cv2.CAP_PROP_FPS, 30) # Framerate is set to be 30fps
         except Exception as e:
             logging.exception(e)
             return False

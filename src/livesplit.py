@@ -18,7 +18,7 @@ class LivesplitConnection(QThread):
     def connect(self):
         if self.check_server():
             try:
-                self.ls = livesplit.Livesplit(ip=self.ip, port=self.port)
+                self.ls = livesplit.Livesplit(ip=self.ip, port=self.port, setupGameTimer=True)
                 self.connected = True
                 self.sig_connection_status.emit(True)
             except Exception as e:
@@ -30,7 +30,7 @@ class LivesplitConnection(QThread):
 
     def check_server(self):
         try:
-            with socket.create_connection((self.ip, self.port), timeout=2):
+            with socket.create_connection((self.ip, self.port), timeout=0.1):
                 return True
         except Exception:
             return False
@@ -39,6 +39,7 @@ class LivesplitConnection(QThread):
         if self.connected:
             try:
                 self.ls.startTimer()
+                self.ls.startGameTimer()
             except Exception as e:
                 print(f"Error starting timer: {e}")
 
@@ -55,3 +56,17 @@ class LivesplitConnection(QThread):
                 self.ls.reset()
             except Exception as e:
                 print(f"Error resetting timer: {e}")
+
+    def pause_timer(self):
+        if self.connected:
+            try:
+                self.ls.pauseGameTimer()
+            except Exception as e:
+                print(f"Error pausing timer: {e}")
+
+    def unpause_timer(self):
+        if self.connected:
+            try:
+                self.ls.startGameTimer()
+            except Exception as e:
+                print(f"Error unpausing timer: {e}")

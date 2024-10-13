@@ -10,8 +10,8 @@ def get_video_device_names():
     return graph.get_input_devices()
 
 # Function to check if a device index is valid
-def is_device_active(index):
-    cap = cv2.VideoCapture(index)
+def is_device_active(val_index):
+    cap = cv2.VideoCapture(val_index)
     if cap.isOpened():
         ret, _ = cap.read()
         cap.release()

@@ -1,0 +1,30 @@
+[
+    {
+        "Split Title": "1-1",
+        "Star Load": "1",
+        "Fadeout": "1",
+        "Fadein": "1",
+        "Split Type": "Option 1"
+    },
+    {
+        "Split Title": "1-2",
+        "Star Load": "1",
+        "Fadeout": "2",
+        "Fadein": "2",
+        "Split Type": "Option 3"
+    },
+    {
+        "Split Title": "1-3",
+        "Star Load": "1",
+        "Fadeout": "2",
+        "Fadein": "2",
+        "Split Type": "Option 2"
+    },
+    {
+        "Split Title": "1-C",
+        "Star Load": "1",
+        "Fadeout": "2",
+        "Fadein": "2",
+        "Split Type": "Option 2"
+    }
+]
