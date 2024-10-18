@@ -1,0 +1,6 @@
+PyQt6
+PyQt5
+PySide6
+opencv-python
+numpy
+pygrabber

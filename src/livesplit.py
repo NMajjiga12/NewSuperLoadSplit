@@ -1,4 +1,3 @@
-import livesplit
 import socket
 from PyQt6.QtCore import QThread, pyqtSignal
 
@@ -10,7 +9,7 @@ class LivesplitConnection(QThread):
         self.ip = ip
         self.port = port
         self.connected = False
-        self.ls = None
+        self.socket = None
 
     def run(self):
         pass  # No continuous checking in the background
@@ -18,12 +17,13 @@ class LivesplitConnection(QThread):
     def connect(self):
         if self.check_server():
             try:
-                self.ls = livesplit.Livesplit(ip=self.ip, port=self.port, setupGameTimer=True)
+                self.socket = socket.create_connection((self.ip, self.port))
                 self.connected = True
                 self.sig_connection_status.emit(True)
             except Exception as e:
                 self.connected = False
                 self.sig_connection_status.emit(False)
+                print(f"Connection error: {e}")
         else:
             self.connected = False
             self.sig_connection_status.emit(False)
@@ -35,38 +35,34 @@ class LivesplitConnection(QThread):
         except Exception:
             return False
 
-    def start_timer(self):
-        if self.connected:
+    def send_command(self, command):
+        if self.connected and self.socket:
             try:
-                self.ls.startTimer()
-                self.ls.startGameTimer()
+                self.socket.sendall(f"{command}\r\n".encode())
             except Exception as e:
-                print(f"Error starting timer: {e}")
+                print(f"Error sending command '{command}': {e}")
+
+    def start_timer(self):
+        self.send_command("starttimer")
 
     def split_timer(self):
-        if self.connected:
-            try:
-                self.ls.split()
-            except Exception as e:
-                print(f"Error splitting timer: {e}")
+        self.send_command("split")
 
     def reset_timer(self):
-        if self.connected:
-            try:
-                self.ls.reset()
-            except Exception as e:
-                print(f"Error resetting timer: {e}")
+        self.send_command("reset")
 
     def pause_timer(self):
-        if self.connected:
-            try:
-                self.ls.pauseGameTimer()
-            except Exception as e:
-                print(f"Error pausing timer: {e}")
+        self.send_command("pausegametime")
 
     def unpause_timer(self):
-        if self.connected:
+        self.send_command("unpausegametime")
+
+    def close_connection(self):
+        if self.socket:
             try:
-                self.ls.startGameTimer()
+                self.socket.close()
             except Exception as e:
-                print(f"Error unpausing timer: {e}")
+                print(f"Error closing socket: {e}")
+            finally:
+                self.connected = False
+                self.sig_connection_status.emit(False)

@@ -5,8 +5,8 @@ from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSpacerItem, QSizePolicy, \
     QApplication, QListWidget
 
-from .crop_settings import CropSettingsWidget
-from .footage_popup import FootagePopup
+from src.dashboard.crop_settings import CropSettingsWidget
+from src.dashboard.footage_popup import FootagePopup
 from .livesplit_detector import LiveSplitDialog
 from ..fadeout_detector import FadeoutDetector
 from ..livesplit import LivesplitConnection
@@ -181,7 +181,7 @@ class VideoWidget(QWidget):
         self.video_capture.init_capture_device(device_index)
 
         # Set fixed timer interval for 30 FPS
-        interval = 1000 / 30
+        interval = 1000 / 60
         self.timer.setInterval(int(interval))
         self.timer.start()  # Start the timer to update frames
 

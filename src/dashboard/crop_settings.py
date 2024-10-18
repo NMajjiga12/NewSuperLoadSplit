@@ -4,6 +4,7 @@ from PyQt6.QtCore import Qt
 class CropSettingsWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.apply_button = None
         self.init_ui()
         self.set_styles()
 

@@ -31,7 +31,7 @@ class VideoCapture(QObject):
 
         try:
             capture_device = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-            capture_device.set(cv2.CAP_PROP_FPS, 30) # Framerate is set to be 30fps
+            capture_device.set(cv2.CAP_PROP_FPS, 60) # Framerate is set to be 30fps
         except Exception as e:
             logging.exception(e)
             return False
@@ -64,10 +64,37 @@ class VideoCapture(QObject):
             self.capture_device.release()
 
 if __name__ == "__main__":
-    import sys
-    from PyQt5.QtWidgets import QApplication
+    if __name__ == "__main__":
+        import sys
+        from PyQt5.QtWidgets import QApplication
 
-    app = QApplication(sys.argv)
-    video_capture = VideoCapture()
-    video_capture.init_capture_device(2)
-    sys.exit(app.exec())
+        app = QApplication(sys.argv)
+        video_capture = VideoCapture()
+
+        # Initialize capture device (0 refers to the first camera device)
+        if not video_capture.init_capture_device(2):
+            print("Failed to initialize capture device.")
+            sys.exit(1)
+
+        # Create a window for display
+        window_name = "Virtual Camera Test"
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(window_name, 640, 480)
+
+        while True:
+            ret, frame = video_capture.get_frame()
+
+            if ret:
+                # Display the resulting frame
+                cv2.imshow(window_name, frame)
+            else:
+                print("Failed to capture frame")
+
+            # Break the loop if 'q' is pressed
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        # Release the capture device and close the OpenCV window
+        video_capture.release()
+        cv2.destroyAllWindows()
+        sys.exit(app.exec())

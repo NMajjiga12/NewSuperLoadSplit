@@ -1,12 +1,13 @@
 import sys
-from PyQt6.QtWidgets import QMainWindow, QApplication, QLabel, QListWidgetItem, QWidget, QVBoxLayout
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon, QFont
+from PySide6.QtWidgets import QMainWindow, QApplication, QLabel, QListWidgetItem, QWidget, QVBoxLayout
+from PySide6.QtCore import Qt, QSize  # Change PyQt6.QtCore to PySide6.QtCore
+from PySide6.QtGui import QIcon, QFont  # Change PyQt6.QtGui to PySide6.QtGui
 
 # Import the UI class from the 'main_ui' module
 from ui.main_ui import Ui_MainWindow
 from src.dashboard.video_widget import VideoWidget
 from src.route_editor.route_editor import RouteEditor
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -48,7 +49,7 @@ class MainWindow(QMainWindow):
             }
         ]
 
-        # Initialize the UI elements and slots  
+        # Initialize the UI elements and slots
         self.init_list_widget()
         self.init_stackwidget()
 
@@ -73,7 +74,7 @@ class MainWindow(QMainWindow):
         widget_list = self.main_content.findChildren(QWidget)
         for widget in widget_list:
             self.main_content.removeWidget(widget)
-        
+
         for menu in self.menu_list:
             layout = QVBoxLayout()
 
