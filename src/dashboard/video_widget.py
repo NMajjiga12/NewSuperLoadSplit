@@ -1,18 +1,18 @@
 import cv2
-import numpy as np
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSpacerItem, QSizePolicy, \
     QApplication, QListWidget
 
+from src.Livesplit.livesplit import LivesplitConnection
+from src.Livesplit.livesplit_detector import LiveSplitDialog
 from src.dashboard.crop_settings import CropSettingsWidget
+from src.dashboard.detection_optimizer import DetectionWorker
 from src.dashboard.footage_popup import FootagePopup
-from .livesplit_detector import LiveSplitDialog
-from ..fadeout_detector import FadeoutDetector
-from ..livesplit import LivesplitConnection
-from ..route_editor.route_editor import RouteEditor  # Import RouteEditor
-from ..start_detector import StartDetector
-from ..virtual_cam import VideoCapture
+from src.fadeout_detector import FadeoutDetector
+from src.route_editor.route_editor import RouteEditor  # Import RouteEditor
+from src.start_detector import StartDetector
+from src.virtual_cam import VideoCapture
 
 
 class VideoWidget(QWidget):
@@ -27,9 +27,18 @@ class VideoWidget(QWidget):
         self.video_capture = VideoCapture()  # Initialize VideoCapture
         self.fadeout_detector = FadeoutDetector()  # Initialize FadeoutDetector
         self.start_detector = StartDetector()
+        self.timer_started = False
+
+        # Create the detection worker thread
+        self.detection_worker = DetectionWorker(self.start_detector, self.fadeout_detector)
+        self.detection_worker.detection_result.connect(self.handle_detection_result)
+        self.detection_worker.start()
+
+        # Frame update timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
-        self.timer_started = False
+        self.timer.start(17)  # Targeting ~60 fps
+
 
     def init_ui(self):
         main_layout = QVBoxLayout()  # Changed from QHBoxLayout to QVBoxLayout
@@ -47,13 +56,6 @@ class VideoWidget(QWidget):
                 padding: 5px;
                 font-size: 18px;
                 font-family: Calibri;
-                outline: none;  /* Remove the dashed outline when the QListWidget is focused */
-            }
-            QListWidget::item {
-                background-color: #303030;
-                margin: 2px;
-                border-radius: 5px;
-                padding: 5px;
             }
             QListWidget::item:selected {
                 background-color: black;
@@ -61,13 +63,13 @@ class VideoWidget(QWidget):
             }
         """)
 
-        self.video_label = QLabel()
+        self.video_label = QLabel(self)
         self.video_label.setFixedSize(640, 480)
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         video_layout.addWidget(self.video_label)
 
         # Add a spacer below the video widget
-        spacer_above_button = QSpacerItem(0, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        spacer_above_button = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         # Detect Virtual Camera button
         self.detect_camera_button = QPushButton("Detect Virtual Camera")
@@ -77,7 +79,7 @@ class VideoWidget(QWidget):
                 color: white;
                 background-color: #252525;
                 border: none;
-                padding: 8px 70px;
+                padding: 8px 65px;
                 border-radius: 2px;
                 font-size: 16px;
             }
@@ -178,59 +180,68 @@ class VideoWidget(QWidget):
 
     def init_camera(self, device_index):
         print(f"Initializing camera with index {device_index}")
-        self.video_capture.init_capture_device(device_index)
-
-        # Set fixed timer interval for 30 FPS
-        interval = 1000 / 60
-        self.timer.setInterval(int(interval))
-        self.timer.start()  # Start the timer to update frames
+        if self.video_capture.init_capture_device(device_index):
+            self.video_capture.capture_device.set(cv2.CAP_PROP_FPS, 60)  # Set frame rate to 60fps
+            print("Camera initialized successfully")
+        else:
+            print("Failed to initialize camera")
 
     def update_frame(self):
         ret, frame = self.video_capture.get_frame() if self.video_capture else (False, None)
         if ret:
+            # Crop the frame if needed
             x, y, width, height = self.crop_params
-            # Ensure the crop region is within the frame bounds
             frame_height, frame_width, _ = frame.shape
             x = min(max(x, 0), frame_width)
             y = min(max(y, 0), frame_height)
             width = min(width, frame_width - x)
             height = min(height, frame_height - y)
-
-            # Apply cropping
             frame = frame[y:y + height, x:x + width]
-            # Resize to fit the QLabel
-            frame = cv2.resize(frame, (640, 480))
-            # Convert the frame from BGR to RGB
+
+            # Convert the frame to RGB format
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Detect start time
-            if self.start_detector.detect(frame) and not self.timer_started:
-                print('Found needle. Start timer detected.')
-                self.livesplit.start_timer()
-                self.timer_started = True
+            # Send frame to detection worker for processing
+            self.detection_worker.add_frame(rgb_frame)
 
-            # Detect fadeout using FadeoutDetector and if timer is started
-            if self.timer_started:
-                status = self.fadeout_detector.detect_fadeout(frame)
-                if status == 'fadeout':
-                    print('Fadeout detected (black screen).')
-                    self.livesplit.pause_timer()
-                elif status == 'fadein':
-                    print('Fadein detected.')
-                    self.livesplit.unpause_timer()
+            # Resize the frame to match the QLabel size if needed
+            label_width = self.video_label.width()
+            label_height = self.video_label.height()
+            if (rgb_frame.shape[1], rgb_frame.shape[0]) != (label_width, label_height):
+                rgb_frame = cv2.resize(rgb_frame, (label_width, label_height), interpolation=cv2.INTER_LINEAR)
 
-            # Convert the frame to QImage and display
-            image = QImage(rgb_frame.data, rgb_frame.shape[1], rgb_frame.shape[0], QImage.Format.Format_RGB888)
-            pixmap = QPixmap.fromImage(image)
+            # Convert to QImage and display in QLabel
+            height, width, channel = rgb_frame.shape
+            bytes_per_line = 3 * width
+            q_image = QImage(rgb_frame.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+            pixmap = QPixmap.fromImage(q_image)
             self.video_label.setPixmap(pixmap)
+
         else:
             # Display a black screen if frame retrieval fails
-            black_image = np.zeros((480, 640, 3), dtype=np.uint8)
-            black_qimage = QImage(black_image.data, black_image.shape[1], black_image.shape[0],
-                                  QImage.Format.Format_RGB888)
-            black_pixmap = QPixmap.fromImage(black_qimage)
-            self.video_label.setPixmap(black_pixmap)
+            self.display_black_screen()
 
+    def handle_detection_result(self, detection_type):
+        if detection_type == 'start' and not self.timer_started:
+            print('Found needle. Start timer detected.')
+            self.livesplit.start_timer()
+            self.timer_started = True
+        elif detection_type == 'fadeout' and self.timer_started:
+            print('Fadeout detected (black screen).')
+            self.livesplit.pause_timer()
+        elif detection_type == 'fadein' and self.timer_started:
+            print('Fadein detected.')
+            self.livesplit.unpause_timer()
+
+    def display_black_screen(self):
+        # Load a "no signal" image to display
+        no_signal_image_path = "../../img/nosignal.png"  # Update with the correct path to the image
+        no_signal_pixmap = QPixmap(no_signal_image_path)
+        # Resize the pixmap to match the video label size if necessary
+        no_signal_pixmap = no_signal_pixmap.scaled(self.video_label.width(), self.video_label.height(),
+                                                   Qt.AspectRatioMode.KeepAspectRatio)
+        # Set the pixmap to the video label
+        self.video_label.setPixmap(no_signal_pixmap)
     def update_split_list(self, splits):
         self.split_list_widget.clear()
         self.split_list_widget.addItems(splits)
@@ -238,6 +249,8 @@ class VideoWidget(QWidget):
     def closeEvent(self, event):
         if self.video_capture:
             self.video_capture.release()
+        if hasattr(self, 'detection_worker'):
+            self.detection_worker.stop()
         event.accept()
 
 if __name__ == "__main__":

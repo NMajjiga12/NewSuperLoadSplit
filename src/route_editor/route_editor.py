@@ -1,11 +1,13 @@
 import json
+import sys
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, QLabel,
     QLineEdit, QComboBox, QAbstractItemView, QHeaderView, QMessageBox, QFileDialog
 )
 from PyQt6.QtGui import QIntValidator
 from PyQt6.QtCore import pyqtSignal
-
+from PyQt6.QtWidgets import QApplication
 
 class RouteEditor(QWidget):
     # Define a signal that emits the list of split names
@@ -286,3 +288,12 @@ class RouteEditor(QWidget):
             print(f"Data loaded from {file_name}!")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to load JSON file: {str(e)}")
+
+def main():
+    app = QApplication(sys.argv)
+    window = RouteEditor()
+    window.show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

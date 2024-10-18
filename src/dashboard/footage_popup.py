@@ -1,6 +1,6 @@
 import sys
 import cv2
-from PySide6.QtWidgets import QMainWindow, QApplication, QLabel, QWidget, QVBoxLayout, QComboBox, QPushButton
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QComboBox, QPushButton
 from PySide6.QtCore import Signal, Qt
 from pygrabber.dshow_graph import FilterGraph
 
