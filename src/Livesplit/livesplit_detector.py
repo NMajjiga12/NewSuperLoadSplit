@@ -1,6 +1,8 @@
 import socket
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
-from PyQt6.QtCore import QThread, pyqtSignal
+
+from PyQt6.QtCore import QThread, pyqtSignal, Qt
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout
+
 
 class LiveSplitConnectionThread(QThread):
     connection_status_changed = pyqtSignal(bool)  # Signal to update connection status
@@ -38,6 +40,8 @@ class LiveSplitConnectionThread(QThread):
 
 
 class LiveSplitDialog(QDialog):
+    connection_status_changed = pyqtSignal(bool)  # New signal to emit status changes
+
     def __init__(self, connected=False, livesplit=None, parent=None):
         super().__init__(parent)
         self.livesplit = livesplit
@@ -56,10 +60,11 @@ class LiveSplitDialog(QDialog):
         self.status_label = QLabel("LiveSplit is connected." if connected else "LiveSplit is not connected.")
         self.status_label.setObjectName("title_label")
         if connected:
-            self.status_label.setStyleSheet("color: #00dbdb; font-size: 20px;")
+            self.status_label.setStyleSheet("color: #00dbdb; font-size: 28px;")
         else:
-            self.status_label.setStyleSheet("color: #FF47FC; font-size: 24px;")
-        layout.addWidget(self.status_label)
+            self.status_label.setStyleSheet("color: #FF47FC; font-size: 28px;")
+
+        layout.addWidget(self.status_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         self.instruction_label = QLabel(
             "To connect LiveSplit follow the steps here:\n"
@@ -73,11 +78,6 @@ class LiveSplitDialog(QDialog):
 
         button_layout = QHBoxLayout()
 
-        self.close_button = QPushButton("Close")
-        self.close_button.setObjectName("popup_button")
-        self.close_button.clicked.connect(self.close)
-        button_layout.addWidget(self.close_button)
-
         layout.addLayout(button_layout)
         self.setLayout(layout)
 
@@ -86,54 +86,33 @@ class LiveSplitDialog(QDialog):
             QDialog {
                 background-color: #252525;
                 border: 1px solid #828790;
-                border-radius: 5px;
             }
 
             QLabel#title_label {
-                font-size: 16px;
+                font-size: 28px;
                 font-family: Calibri;
-                padding: 10px;
-                border-bottom: 1px solid #828790;
+                text-align: center;  
             }
 
             QLabel#instruction_label {
                 color: white;
                 font-size: 14px;
                 font-family: Calibri;
-                padding: 10px;
-            }
-
-            QPushButton#popup_button {
-                color: white;
-                background-color: #252525;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 5px;
-                font-size: 16px;
-            }
-
-            QPushButton#popup_button:hover {
-                background-color: #dadada;
-            }
-
-            QPushButton#popup_button:pressed {
-                background-color: #00aaff;
+                text-align: center;  
             }
         """)
 
     def update_status(self, connected):
-        """Update the UI based on the connection status."""
+        """Update the UI based on the connection status and emit the signal."""
         if connected:
             self.status_label.setText("LiveSplit is connected.")
-            self.status_label.setStyleSheet("color: #00dbdb; font-size: 20px;")
+            self.status_label.setStyleSheet("color: #00dbdb; font-size: 28px;")
         else:
             self.status_label.setText("LiveSplit is not connected.")
-            self.status_label.setStyleSheet("color: #FF47FC; font-size: 24px;")
+            self.status_label.setStyleSheet("color: #FF47FC; font-size: 28px;")
 
-    def closeEvent(self, event):
-        """Stop the connection thread when the window is closed."""
-        self.ls_thread.stop()
-        event.accept()
+        # Emit the connection status signal to notify any listeners
+        self.connection_status_changed.emit(connected)
 
 
 # Example usage:

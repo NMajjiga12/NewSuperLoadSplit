@@ -1,7 +1,7 @@
 import sys
 import cv2
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QComboBox, QPushButton
-from PySide6.QtCore import Signal, Qt
+from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QComboBox
+from PyQt6.QtCore import pyqtSignal, Qt
 from pygrabber.dshow_graph import FilterGraph
 
 # Function to get the names of video devices using pygrabber
@@ -29,35 +29,43 @@ for index in range(max_checks):
     if is_device_active(index):
         active_devices.append((index, device_names[index]))
 
-# GUI Code using PySide6
-class FootagePopup(QMainWindow):
-    device_selected = Signal(int)
+# GUI Code using PyQt6
+class FootagePopup(QWidget):  # Changed from QMainWindow to QWidget
+    device_selected = pyqtSignal(int)  # Changed Signal to pyqtSignal
 
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("Select Video Device")
-        self.setFixedSize(300, 150)  # Adjust size as needed
+        self.setFixedSize(500, 100)  # Adjust size as needed
 
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
 
-        device_label = QLabel("Select an active video device:")
-        layout.addWidget(device_label)
+        # Add a label above the device selection for settings title
+        settings_label = QLabel("                                Video Capture Device Settings                                ")
+        settings_label.setStyleSheet("color: white; font-size: 18px; font-family: Calibri; border: 1px solid #828790;")
+        main_layout.addWidget(settings_label, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        # Create a horizontal layout for the label and combobox
+        device_selection_layout = QHBoxLayout()
+
+        device_label = QLabel("   Select Video Capture    ")
+        device_selection_layout.addWidget(device_label, alignment=Qt.AlignmentFlag.AlignLeft)
 
         self.device_combobox = QComboBox()
+        self.device_combobox.addItem("Select Device")  # Add default prompt option
         self.device_combobox.addItems([name for _, name in active_devices])
         self.device_combobox.setObjectName("device_combobox")
-        layout.addWidget(self.device_combobox)
+        self.device_combobox.setFixedWidth(300)  # Set the width to 200 pixels (or your desired width)
+        self.device_combobox.currentIndexChanged.connect(self.on_ok)  # Connect signal to on_ok method
+        device_selection_layout.addWidget(self.device_combobox)
 
-        self.ok_button = QPushButton("OK")
-        self.ok_button.setObjectName("ok_button")
-        self.ok_button.clicked.connect(self.on_ok)
-        layout.addWidget(self.ok_button, 0, Qt.AlignmentFlag.AlignCenter)
+        # Add the horizontal layout to the main layout
+        main_layout.addLayout(device_selection_layout)
 
-        container = QWidget()
-        container.setLayout(layout)
+        # Set the main layout for the widget
+        self.setLayout(main_layout)
 
-        self.setCentralWidget(container)
         self.set_styles()
 
     def set_styles(self):
@@ -67,9 +75,11 @@ class FootagePopup(QMainWindow):
             }
 
             QLabel {
+                background-color: #252525;
                 color: white;
                 font-size: 16px;
                 font-family: Calibri;
+                border: 1px solid #828790;
             }
 
             QComboBox {
@@ -78,7 +88,7 @@ class FootagePopup(QMainWindow):
                 border: 1px solid #828790;
                 font-size: 16px;
                 font-family: Calibri;
-                padding: 5px;
+                padding: 4px;
             }
 
             QComboBox::drop-down {
@@ -102,31 +112,15 @@ class FootagePopup(QMainWindow):
                 border: 1px solid #828790;
                 selection-background-color: #00aaff;
             }
-
-            QPushButton#ok_button {
-                color: white;
-                background-color: #252525;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 5px;
-                font-size: 16px;
-            }
-
-            QPushButton#ok_button:hover {
-                background-color: #dadada;
-            }
-
-            QPushButton#ok_button:pressed {
-                background-color: #00aaff;
-            }
         """)
 
     def on_ok(self):
         selected_index = self.device_combobox.currentIndex()
-        device_index = active_devices[selected_index][0]
+        if selected_index == 0:  # If "Select Device" is selected, do nothing
+            return
+        device_index = active_devices[selected_index - 1][0]  # Adjust index because of "Select Device" option
         print(f"Selected Device: {device_index}")
         self.device_selected.emit(device_index)
-        self.close()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

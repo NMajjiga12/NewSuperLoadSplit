@@ -23,8 +23,5 @@ class StartDetector:
         # Get the max value from the match result
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
-        # Print out the threshold and match value for debugging
-        # print(f"Threshold: {threshold}, Max Match Value: {max_val}")
-
         # Return True if the match value exceeds the threshold
         return max_val >= threshold

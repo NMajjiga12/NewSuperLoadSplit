@@ -1,6 +1,5 @@
 import json
 import sys
-
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget, QLabel,
     QLineEdit, QComboBox, QAbstractItemView, QHeaderView, QMessageBox, QFileDialog
@@ -280,7 +279,7 @@ class RouteEditor(QWidget):
                 self.route_table.insertRow(current_row)
                 self.add_widgets_to_row(current_row)
                 self.route_table.cellWidget(current_row, 0).setText(entry.get("Split Title", ""))
-                self.route_table.cellWidget(current_row, 1).setText(entry.get("Star Load", ""))
+                self.route_table.cellWidget(current_row, 1).setText(entry.get("Banner Load", ""))
                 self.route_table.cellWidget(current_row, 2).setText(entry.get("Fadeout", ""))
                 self.route_table.cellWidget(current_row, 3).setText(entry.get("Fadein", ""))
                 self.route_table.cellWidget(current_row, 4).setCurrentText(entry.get("Split Type", "Option 1"))

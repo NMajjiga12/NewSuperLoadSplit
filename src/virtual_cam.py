@@ -4,7 +4,6 @@ import cv2
 from PyQt5.QtCore import QObject
 from PyQt5.QtWidgets import QApplication
 
-
 class VideoCapture(QObject):
     instance = None
     initialized = False
