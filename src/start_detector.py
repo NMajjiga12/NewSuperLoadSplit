@@ -18,7 +18,7 @@ class StartDetector:
         result = cv2.matchTemplate(frame_gray, self.needle_img_gray, cv2.TM_CCOEFF_NORMED)
 
         # Define a threshold for detection
-        threshold = 0.7  # Adjust based on testing and template quality
+        threshold = 0.66  # Adjust based on testing and template quality
 
         # Get the max value from the match result
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)

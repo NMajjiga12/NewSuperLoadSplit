@@ -7,7 +7,8 @@ from PyQt6.QtGui import QIcon, QFont
 from ui.main_ui import Ui_MainWindow
 from src.dashboard.video_widget import VideoWidget
 from src.route_editor.route_editor import RouteEditor
-from src.settings.settings import SettingsWindow  # Import SettingsWindow
+from src.settings.settings import SettingsWindow
+
 
 class MainWindow(QMainWindow):
     settings_requested = pyqtSignal()  # Define a custom signal for settings requests
@@ -19,20 +20,11 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        # Set window properties
-        self.setWindowIcon(QIcon("./icon/Logo.png"))
-        self.setWindowTitle("New Super Loadless Splitter")
-
-        # Initialize UI elements
-        self.title_label = self.ui.title_label
-        self.title_label.setText("Options Menu/Tab")
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignBottom)
-        self.title_icon = self.ui.title_icon
-        self.title_icon.setScaledContents(True)
-
+        # Initialize sidebar (side_menu)
         self.side_menu = self.ui.listWidget
         self.side_menu.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
+        # Main content stack widget
         self.main_content = self.ui.stackedWidget
 
         # Define a list of menu items with names and icons
@@ -42,7 +34,7 @@ class MainWindow(QMainWindow):
             {"name": "Settings", "icon": "./icon/settings-white.svg"}
         ]
 
-        # Initialize the UI elements and slots
+        # Initialize UI elements and slots
         self.init_list_widget()
         self.init_stackwidget()
 
@@ -56,17 +48,19 @@ class MainWindow(QMainWindow):
             item.setText(menu.get("name"))
             item.setSizeHint(QSize(40, 40))
             self.side_menu.addItem(item)
-            self.side_menu.setCurrentRow(0)
 
-            # Connect signals and slots for switching between menu items
-            self.side_menu.currentRowChanged.connect(self.main_content.setCurrentIndex)
+        # Set default row selection to the first item and connect signals
+        self.side_menu.setCurrentRow(0)
+        self.side_menu.currentRowChanged.connect(self.main_content.setCurrentIndex)
 
     def init_stackwidget(self):
-        # Initialize the stack widget with content pages
-        widget_list = self.main_content.findChildren(QWidget)
-        for widget in widget_list:
+        # Clear any existing widgets in the stack widget
+        while self.main_content.count() > 0:
+            widget = self.main_content.widget(0)
             self.main_content.removeWidget(widget)
+            widget.deleteLater()
 
+        # Add pages to the stack widget based on menu items
         for menu in self.menu_list:
             layout = QVBoxLayout()
 
@@ -76,11 +70,13 @@ class MainWindow(QMainWindow):
             elif menu.get("name") == "Routes":
                 self.route_editor = RouteEditor(self)
                 layout.addWidget(self.route_editor)
-                self.route_editor.splits_updated.connect(self.video_widget.update_split_list)
+                if hasattr(self, 'video_widget'):
+                    self.route_editor.splits_updated.connect(self.video_widget.update_split_list)
             elif menu.get("name") == "Settings":
                 self.settings_widget = SettingsWindow(self)
                 layout.addWidget(self.settings_widget)
             else:
+                # Fallback if additional pages are added in future
                 label = QLabel(menu.get("name"))
                 label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 font = QFont()
@@ -88,6 +84,7 @@ class MainWindow(QMainWindow):
                 label.setFont(font)
                 layout.addWidget(label)
 
+            # Wrap the layout in a QWidget and add to the stack
             new_page = QWidget()
             new_page.setLayout(layout)
             self.main_content.addWidget(new_page)
@@ -103,7 +100,6 @@ if __name__ == '__main__':
     # Load style file
     with open("style.qss") as f:
         style_str = f.read()
-
     app.setStyleSheet(style_str)
 
     window = MainWindow()
