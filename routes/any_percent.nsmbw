@@ -1,0 +1,168 @@
+{
+    "version": "0.1.0",
+    "name": "any_percent",
+    "start_detector": "manual",
+    "ending_detector": "manual",
+    "splits": [
+        {
+            "name": "1-1",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 2,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "1-2",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 4,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "1-3",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 3,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "1-C",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 2,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "5-1",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 3,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "Piranha",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 2,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "5-3",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 3,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "5-T",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 3,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "5-4",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 4,
+            "load_type": "tower_castle",
+            "split_action": "split"
+        },
+        {
+            "name": "5-GH",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 4,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "5-C",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 2,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "8-1",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 3,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "8-2",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 5,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "8-7",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 3,
+            "load_type": "regular_fade",
+            "split_action": "split"
+        },
+        {
+            "name": "8-A",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 6,
+            "load_type": "tower_castle",
+            "split_action": "split"
+        },
+        {
+            "name": "8-C",
+            "type": "",
+            "components": [],
+            "split": true,
+            "reset_load_count": true,
+            "expected_loads": 4,
+            "load_type": "tower_castle",
+            "split_action": "split"
+        }
+    ]
+}

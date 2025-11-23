@@ -1,0 +1,14 @@
+{
+    "livesplit_port": 16834,
+    "capture_device": 0,
+    "show_preview": true,
+    "fullscreen": false,
+    "window_position": [100, 100],
+    "window_size": [1000, 724],
+    "current_route": "",
+    "dashboard_splitter_1": [350, 500],
+    "route_splitter_1": [350, 500],
+    "starting_detector": "manual",
+    "ending_detector": "switch",
+    "font_size": 9
+}
