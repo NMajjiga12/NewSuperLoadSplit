@@ -22,7 +22,8 @@ class Classifier:
             possible_paths = [
                 model_path,
                 os.path.join("models", model_path),
-                os.path.join(os.path.dirname(__file__), "..", "..", "models", model_path)
+                os.path.join(os.path.dirname(__file__), "..", "..", "models", model_path),
+                os.path.join(os.path.dirname(__file__), "..", "models", model_path)
             ]
             
             for path in possible_paths:
@@ -32,6 +33,7 @@ class Classifier:
             
             if not os.path.exists(model_path):
                 logging.error(f"Model file not found: {model_path}")
+                logging.error(f"Searched in: {possible_paths}")
                 return None
                 
             return onnxruntime.InferenceSession(model_path, sess_options=opts)
@@ -88,7 +90,8 @@ class NumericClassifier:
             possible_paths = [
                 model_path,
                 os.path.join("models", model_path),
-                os.path.join(os.path.dirname(__file__), "..", "..", "models", model_path)
+                os.path.join(os.path.dirname(__file__), "..", "..", "models", model_path),
+                os.path.join(os.path.dirname(__file__), "..", "models", model_path)
             ]
             
             for path in possible_paths:
