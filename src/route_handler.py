@@ -56,6 +56,7 @@ class RouteHandler:
             "properties": {
                 "version": {"type": "string"},
                 "name": {"type": "string"},
+                "reset_detector": {"type": "string"},
                 "start_detector": {"type": "string"},
                 "ending_detector": {"type": "string"},
                 "splits": {
@@ -86,7 +87,7 @@ class RouteHandler:
                     }
                 },
             },
-            "required": ["version", "name", "start_detector", "ending_detector", "splits"]
+            "required": ["version", "name", "reset_detector", "start_detector", "ending_detector", "splits"]
         }
 
         try:
@@ -99,8 +100,7 @@ class RouteHandler:
 
     @staticmethod
     def save_route_btn():
-        if os.path.splitext(RouteHandler.route_path)[1] == ".lss" or (RouteHandler.route_path == "" and
-                                                                      RouteHandler.route is not None):
+        if os.path.splitext(RouteHandler.route_path)[1] == ".lss" or (RouteHandler.route_path == "" and RouteHandler.route is not None):
             RouteHandler.save_route_as_btn()
         RouteHandler.save_route(RouteHandler.route_path)
 
@@ -247,7 +247,7 @@ class RouteHandler:
         tree = ElementTree.parse(path)
         root = tree.getroot()
 
-        RouteHandler.route = NSMBWRoute(Config.version, os.path.splitext(path)[0].split('/')[-1], "manual", "manual", [])
+        RouteHandler.route = NSMBWRoute(Config.version, os.path.splitext(path)[0].split('/')[-1], "manual", "manual", "manual", [])
 
         splits = []
         subsplits = []
@@ -289,9 +289,18 @@ class RouteHandler:
     def parse_route(route_object):
         version = RouteHandler.get_key(route_object, "version", Config.version)
         name = RouteHandler.get_key(route_object, "name", "Unnamed Route")
+        reset_detector = RouteHandler.get_key(route_object, "reset_detector", "manual")
         start_detector = RouteHandler.get_key(route_object, "start_detector", "manual")
         ending_detector = RouteHandler.get_key(route_object, "ending_detector", "manual")
         splits_object = RouteHandler.get_key(route_object, "splits", [])
+
+        # Ensure detector values are strings, not lists
+        if isinstance(reset_detector, list):
+            reset_detector = reset_detector[0] if reset_detector else "manual"
+        if isinstance(start_detector, list):
+            start_detector = start_detector[0] if start_detector else "manual"
+        if isinstance(ending_detector, list):
+            ending_detector = ending_detector[0] if ending_detector else "manual"
 
         splits = []
         for split in splits_object:
@@ -314,7 +323,7 @@ class RouteHandler:
 
             splits.append(NSMBWSplit(split_name, split_type, split_components, split_split, split_reset_load_count, split_expected_loads, split_load_type, split_split_action))
 
-        return NSMBWRoute(version, name, start_detector, ending_detector, splits)
+        return NSMBWRoute(version, name, reset_detector, start_detector, ending_detector, splits)
 
     @staticmethod
     def serialize_route(route_object):
@@ -343,6 +352,7 @@ class RouteHandler:
         route_dict = {
             "version": route_object.version,
             "name": route_object.name,
+            "reset_detector": route_object.reset_detector,
             "start_detector": route_object.start_detector,
             "ending_detector": route_object.ending_detector,
             "splits": splits
@@ -359,7 +369,7 @@ class RouteHandler:
                 return json_object[key]
             else:
                 # Don't log warnings for optional fields to reduce noise
-                if key not in ['load_type', 'type', 'split_action', 'start_detector', 'ending_detector']:  # These are optional fields
+                if key not in ['load_type', 'type', 'split_action', 'reset_detector', 'start_detector', 'ending_detector']:  # These are optional fields
                     logging.warning(f"Key \"{key}\" not found in route, using default: {default}")
                 return default
         except Exception as e:
@@ -417,7 +427,7 @@ class Component:
 
 class NSMBWSplit:
     def __init__(self, name: str, type: str, components: List[Component], split: bool = True,
-                 reset_load_count: bool = True, expected_loads: int = 0, load_type: str = "regular_fade", split_action: str = "split"):
+        reset_load_count: bool = True, expected_loads: int = 0, load_type: str = "regular_fade", split_action: str = "split"):
         self.name: str = name
         self.type: str = type
         self.components: List[Component] = components
@@ -429,9 +439,10 @@ class NSMBWSplit:
         self.actual_loads: int = 0
 
 class NSMBWRoute:
-    def __init__(self, version=Config.version, name: str = "", start_detector: str = None, ending_detector: str = None, splits: List[NSMBWSplit] = None):
+    def __init__(self, version=Config.version, name: str = "", reset_detector: str = None, start_detector: str = None, ending_detector: str = None, splits: List[NSMBWSplit] = None):
         self.version: str = Config.version
         self.name: str = name
+        self.reset_detector: str = reset_detector if reset_detector is not None else "manual"
         self.start_detector: str = start_detector if start_detector is not None else "manual"
         self.ending_detector: str = ending_detector if ending_detector is not None else "manual"
         self.splits: List[NSMBWSplit] = splits if splits is not None else []

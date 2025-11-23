@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import os
 import time
+import onnxruntime
 
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QPixmap, QImage
@@ -15,6 +16,7 @@ from src.config import Config
 from src.route_handler import RouteHandler
 from src.detectors.banner_load_detector import BannerLoadDetector
 from src.detectors.fade_load_detector import FadeLoadDetector
+from src.detectors.switch_detector import SwitchDetector
 
 
 class Autosplitter(QThread):
@@ -44,9 +46,17 @@ class Autosplitter(QThread):
         capture_device = Config.get_key("capture_device", 0)
         self.video_capture.init_capture_device(capture_device)
 
-        # Initialize detectors
+        # Initialize detectors with ONNX session options
+        opts = onnxruntime.SessionOptions()
+        opts.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+        
         self.banner_detector = BannerLoadDetector()
+        self.banner_detector.load_model(opts)
+        
         self.fade_detector = FadeLoadDetector()
+        self.fade_detector.load_models(opts)
+        
+        self.switch_detector = SwitchDetector()
 
         self.livesplit = Livesplit()
         self.livesplit.sig_timer_reset.connect(self.reset_run)
@@ -68,14 +78,14 @@ class Autosplitter(QThread):
         self.wait_for_reset = False
         self.waiting_for_fadein = False
         
-        # New classification state variables
+        # Load detection state variables
         self.is_in_load_state = False
         self.last_load_time = 0
         self.load_cooldown = 2.0  # seconds between load detections
         self.frames_since_last_load = 0
         self.current_load_type = None
         
-        # New settings
+        # Detector settings
         self.starting_detector = Config.get_key("starting_detector", "manual")
         self.ending_detector = Config.get_key("ending_detector", "switch")
 
@@ -219,7 +229,10 @@ class Autosplitter(QThread):
                         self.sig_status_update.emit("Waiting for livesplit to reset", True, False)
                         return
 
-                    if RouteHandler.route.start_condition == "livesplit":
+                    # Handle starting detection based on selected detector
+                    if self.starting_detector == "switch" and self.switch_detector.check_switch_hit():
+                        self.start_run()
+                    elif RouteHandler.route.start_condition == "livesplit":
                         self.sig_status_update.emit("Waiting for livesplit to start", False, True)
                         timer = self.livesplit.get_timer()
                         if timer is not None and timer != datetime.timedelta(0, 0, 0, 0, 0, 0):
@@ -266,8 +279,22 @@ class Autosplitter(QThread):
                         self.sig_status_update.emit("Current split has no components", True, False)
 
                     if self.current_component is not None:
+                        # Update detectors
+                        self.switch_detector.update(frame)
+                        
                         # Handle load detection based on current split's load type
                         self.handle_load_detection(frame)
+                        
+                        # Update frame counter for delayed actions
+                        self.update_frame_count()
+                        
+                        # Handle ending detection for the last split
+                        if (self.current_split_index == len(RouteHandler.route.splits) - 1 and 
+                            self.ending_detector == "switch" and 
+                            self.switch_detector.check_switch_hit()):
+                            if self.current_split and self.current_split.split:
+                                self.livesplit.split_timer()
+                            self.next_split()
 
         except Exception as e:
             logging.exception(f"Error in update loop: {e}")
@@ -287,16 +314,19 @@ class Autosplitter(QThread):
         # First load in a level is always a banner load
         if self.load_count == 0:
             # Check for banner load
-            if self.banner_detector.detect_banners(frame):
+            self.banner_detector.update(frame)
+            if self.banner_detector.check_banner_load():
                 self.handle_load_detected("banner_load")
                 return
         else:
             # Subsequent loads use the split's specified load type
             if current_load_type == "banner_load":
-                if self.banner_detector.detect_banners(frame):
+                self.banner_detector.update(frame)
+                if self.banner_detector.check_banner_load():
                     self.handle_load_detected("banner_load")
             elif current_load_type in ["regular_fade", "tower_castle", "ghost_house"]:
-                if self.fade_detector.detect_fade_sequence(frame, current_load_type):
+                self.fade_detector.update(frame, current_load_type)
+                if self.fade_detector.check_fade_load():
                     self.handle_load_detected(current_load_type)
 
     def handle_load_detected(self, load_type):
@@ -351,13 +381,6 @@ class Autosplitter(QThread):
         self.waiting_for_fadein = True
         
         # Split after a short delay (simulating the 10 frames mentioned)
-        def delayed_split():
-            if self.current_split and self.current_split.split:
-                self.livesplit.split_timer()
-                print("Split executed")
-            self.next_split()
-        
-        # Use a QTimer or similar for the delay, but for simplicity we'll track frames
         self.frames_until_split = 10
 
     def update_frame_count(self):
@@ -554,6 +577,7 @@ class Autosplitter(QThread):
         self.frames_since_last_load = 0
         self.banner_detector.reset()
         self.fade_detector.reset()
+        self.switch_detector.reset()
         self.sig_reset_splits.emit()
 
     def set_activations(self, value):

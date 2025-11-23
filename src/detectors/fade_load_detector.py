@@ -1,96 +1,82 @@
 import numpy as np
+import time
 import cv2
 import onnxruntime
-import time
 
 from src.classifiers.classifier import Classifier
 from src.classifiers.fade_load_preprocessor import FadeLoadPreprocessor
-from src.classifiers.tower_castle_preprocessor import TowerCastlePreprocessor
 from src.classifiers.ghost_house_preprocessor import GhostHousePreprocessor
+from src.classifiers.tower_castle_preprocessor import TowerCastlePreprocessor
 
 
 class FadeLoadDetector:
     def __init__(self):
-        self.preprocessor = FadeLoadPreprocessor()
-        self.tower_castle_preprocessor = TowerCastlePreprocessor()
-        self.ghost_house_preprocessor = GhostHousePreprocessor()
+        # Classifiers for different load types
+        self.fade_classifier = None
+        self.ghost_house_classifier = None
+        self.tower_castle_classifier = None
         
-        opts = onnxruntime.SessionOptions()
-        opts.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+        # Model Paths
+        self.fade_model_path = 'models/fade_load.onnx'
         
-        self.fade_classifier = Classifier("fade_load.onnx", self.preprocessor, opts, threshold=5)
-        self.tower_castle_classifier = Classifier("fade_load.onnx", self.tower_castle_preprocessor, opts, threshold=5)
-        self.ghost_house_classifier = Classifier("fade_load.onnx", self.ghost_house_preprocessor, opts, threshold=5)
+        # Parameters
+        self.fade_thresh = 5
+        self.ghost_house_thresh = 5
+        self.tower_castle_thresh = 5
         
-        self.brightness_history = []
-        self.fade_threshold = 0.7
-        self.black_screen_threshold = 20
-        self.max_history_size = 15
+        self.fade_detected = False
+        self.fade_checked = False
+        self.current_load_type = "regular_fade"
+        
         self.last_detection_time = 0
         self.detection_cooldown = 2.0
-        self.is_active = False
-        self.current_load_type = "regular_fade"
 
-    def detect_fade_sequence(self, frame, load_type="regular_fade"):
-        """Detect fade loads using the ONNX model"""
+    def load_models(self, opts):
+        """Load all fade load ONNX models"""
+        self.fade_classifier = Classifier(self.fade_model_path, FadeLoadPreprocessor(), opts, self.fade_thresh)
+        self.ghost_house_classifier = Classifier(self.fade_model_path, GhostHousePreprocessor(), opts, self.ghost_house_thresh)
+        self.tower_castle_classifier = Classifier(self.fade_model_path, TowerCastlePreprocessor(), opts, self.tower_castle_thresh)
+
+    def update(self, frame, load_type="regular_fade"):
+        """Update fade detection state based on load type"""
         current_time = time.time()
+        self.current_load_type = load_type
         
         # Cooldown to prevent multiple detections
         if current_time - self.last_detection_time < self.detection_cooldown:
             return False
 
-        self.current_load_type = load_type
-        
-        # Select the appropriate classifier based on load type
-        if load_type == "tower_castle" and self.tower_castle_classifier.model is not None:
-            classifier = self.tower_castle_classifier
-        elif load_type == "ghost_house" and self.ghost_house_classifier.model is not None:
+        # Select appropriate classifier based on load type
+        classifier = self.fade_classifier
+        if load_type == "ghost_house" and self.ghost_house_classifier:
             classifier = self.ghost_house_classifier
-        elif self.fade_classifier.model is not None:
-            classifier = self.fade_classifier
+        elif load_type == "tower_castle" and self.tower_castle_classifier:
+            classifier = self.tower_castle_classifier
+
+        if classifier and classifier.update(frame):
+            self.fade_detected = True
+            self.last_detection_time = current_time
+            return True
+        
+        # Reset if classifier indicates no fade
+        if classifier and classifier.check_reset():
+            self.fade_detected = False
+            self.fade_checked = False
+            
+        return False
+
+    def check_fade_load(self):
+        """Check if fade load was detected"""
+        if not self.fade_checked and self.fade_detected:
+            self.fade_checked = True
+            self.fade_detected = False  # Reset for next detection
+            return True
         else:
             return False
 
-        try:
-            is_load = classifier.update(frame)
-            
-            if is_load and not self.is_active:
-                self.is_active = True
-                self.last_detection_time = current_time
-                print(f"{load_type} load detected!")
-                return True
-            elif not is_load:
-                self.is_active = False
-                
-            return False
-        except Exception as e:
-            print(f"Error in fade load detection: {e}")
-            return False
-
-    def detect_tower_markers(self, frame):
-        """Detect tower/castle specific markers during fade loads"""
-        # Tower/castle loads often have specific center markers or patterns
-        center_x, center_y = frame.shape[1] // 2, frame.shape[0] // 2
-        center_region = frame[center_y-50:center_y+50, center_x-50:center_x+50]
-        
-        if center_region.size == 0:
-            return False
-            
-        gray_center = cv2.cvtColor(center_region, cv2.COLOR_RGB2GRAY)
-        
-        # Look for circular patterns
-        circles = cv2.HoughCircles(gray_center, cv2.HOUGH_GRADIENT, 1, 20,
-                                 param1=50, param2=30, minRadius=10, maxRadius=40)
-        
-        return circles is not None and len(circles) > 0
-
-    def check_black_screen(self, frame):
-        """Check if screen is predominantly black"""
-        avg_brightness = np.mean(cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY))
-        return avg_brightness < self.black_screen_threshold
-
     def reset(self):
         """Reset detector state"""
-        self.is_active = False
+        self.fade_detected = False
+        self.fade_checked = False
         self.last_detection_time = 0
-        self.brightness_history.clear()
+        self.current_load_type = "regular_fade"

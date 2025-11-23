@@ -361,16 +361,40 @@ class MainWindowUi(QMainWindow):
         self.page_route_left_layout.addWidget(self.route_splits_list)
         self.page_route_left_layout.addWidget(self.route_splits_add_btn)
 
-        # Start Detector Section
-        self.page_route_start_detector_title = QLabel("Start Detector")
-        self.page_route_start_detector_title.setFont(font_11pt)
-        self.page_route_start_detector_title.setStyleSheet(Style.title_label)
+        # NEW: Route Options Section at the top
+        self.page_route_route_options_title = QLabel("Route Options")
+        self.page_route_route_options_title.setFont(font_11pt)
+        self.page_route_route_options_title.setStyleSheet(Style.title_label)
+
+        # Reset Detector
+        self.page_route_reset_detector_label = QLabel("Reset Detector:")
+        self.page_route_reset_detector_label.setFont(font_10pt)
+
+        self.page_route_reset_detector = QComboBox()
+        self.page_route_reset_detector.setFixedHeight(32)
+        self.page_route_reset_detector.setFont(font_10pt)
+        self.page_route_reset_detector.setStyleSheet(Style.dropdown)
+        self.page_route_reset_detector.addItems(["Manual", "Title Screen", "Super Guide", "Menu"])
+
+        # Start Detector
+        self.page_route_start_detector_label = QLabel("Start Detector:")
+        self.page_route_start_detector_label.setFont(font_10pt)
 
         self.page_route_start_detector = QComboBox()
         self.page_route_start_detector.setFixedHeight(32)
         self.page_route_start_detector.setFont(font_10pt)
         self.page_route_start_detector.setStyleSheet(Style.dropdown)
-        self.page_route_start_detector.addItems(["Manual", "File Select", "1-1 Text"])
+        self.page_route_start_detector.addItems(["Manual", "File Select", "1-1 Text", "Switch Hit"])
+
+        # Ending Detector
+        self.page_route_ending_detector_label = QLabel("Ending Detector:")
+        self.page_route_ending_detector_label.setFont(font_10pt)
+
+        self.page_route_ending_detector = QComboBox()
+        self.page_route_ending_detector.setFixedHeight(32)
+        self.page_route_ending_detector.setFont(font_10pt)
+        self.page_route_ending_detector.setStyleSheet(Style.dropdown)
+        self.page_route_ending_detector.addItems(["Manual", "Switch Hit"])
 
         # Split Options
         self.page_route_split_options_title = QLabel("Split Options")
@@ -433,17 +457,6 @@ class MainWindowUi(QMainWindow):
         self.page_route_split_options_layout.addWidget(QLabel("Split Action:"), 4, 0)
         self.page_route_split_options_layout.addWidget(self.page_route_split_option_split_action, 4, 1)
 
-        # Ending Detector Section
-        self.page_route_ending_detector_title = QLabel("Ending Detector")
-        self.page_route_ending_detector_title.setFont(font_11pt)
-        self.page_route_ending_detector_title.setStyleSheet(Style.title_label + "QLabel{margin-top: 10px;}")
-
-        self.page_route_ending_detector = QComboBox()
-        self.page_route_ending_detector.setFixedHeight(32)
-        self.page_route_ending_detector.setFont(font_10pt)
-        self.page_route_ending_detector.setStyleSheet(Style.dropdown)
-        self.page_route_ending_detector.addItems(["Manual", "Switch Hit"])
-
         # Route Buttons
         self.page_route_buttons_layout = QHBoxLayout()
         self.page_route_buttons_layout.setContentsMargins(0, 10, 0, 0)
@@ -479,13 +492,16 @@ class MainWindowUi(QMainWindow):
         self.page_route_right_widget = QWidget()
         self.page_route_right_widget.setLayout(self.page_route_right_layout)
 
-        # Updated layout with new sections
-        self.page_route_right_layout.addWidget(self.page_route_start_detector_title)
+        # Updated layout with new Route Options section at the top
+        self.page_route_right_layout.addWidget(self.page_route_route_options_title)
+        self.page_route_right_layout.addWidget(self.page_route_reset_detector_label)
+        self.page_route_right_layout.addWidget(self.page_route_reset_detector)
+        self.page_route_right_layout.addWidget(self.page_route_start_detector_label)
         self.page_route_right_layout.addWidget(self.page_route_start_detector)
+        self.page_route_right_layout.addWidget(self.page_route_ending_detector_label)
+        self.page_route_right_layout.addWidget(self.page_route_ending_detector)
         self.page_route_right_layout.addWidget(self.page_route_split_options_title)
         self.page_route_right_layout.addWidget(self.page_route_split_options_widget)
-        self.page_route_right_layout.addWidget(self.page_route_ending_detector_title)
-        self.page_route_right_layout.addWidget(self.page_route_ending_detector)
         self.page_route_right_layout.addStretch()
         self.page_route_right_layout.addWidget(self.page_route_buttons_widget)
 
@@ -493,7 +509,7 @@ class MainWindowUi(QMainWindow):
         self.page_route_splitter.addWidget(self.page_route_right_widget)
 
         self.page_route_splitter.setStretchFactor(1, 1)
-        
+
         route_sizes = Config.get_key("route_splitter_1", [350, 500])
         self.page_route_splitter.setSizes(route_sizes)
 

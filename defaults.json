@@ -10,5 +10,5 @@
     "route_splitter_1": [350, 500],
     "starting_detector": "manual",
     "ending_detector": "switch",
-    "font_size": 9
+    "font_size": 12
 }

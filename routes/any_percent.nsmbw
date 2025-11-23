@@ -1,6 +1,7 @@
 {
     "version": "0.1.0",
     "name": "any_percent",
+    "reset_detector": "manual",
     "start_detector": "manual",
     "ending_detector": "manual",
     "splits": [

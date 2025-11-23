@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtWidgets import QListWidgetItem, QLabel, QComboBox, QLineEdit, QCheckBox, QSpinBox, QHBoxLayout, QGridLayout, QWidget
+from PyQt5.QtWidgets import QListWidgetItem, QLabel, QComboBox, QLineEdit, QCheckBox, QSpinBox, QHBoxLayout, QGridLayout, QWidget, QVBoxLayout
 from PyQt5.QtGui import QFont, QColor
 
 from src.route_handler import *
@@ -22,8 +22,10 @@ class PageRoute(QObject):
         self.ui.route_splits_list.itemSelectionChanged.connect(self.selection_changed)
         self.ui.route_splits_add_btn.clicked.connect(self.add_split_clicked)
 
-        # Start Detector Options
+        # Route Options - New layout at the top
+        self.ui.page_route_reset_detector.currentTextChanged.connect(self.reset_detector_changed)
         self.ui.page_route_start_detector.currentTextChanged.connect(self.start_detector_changed)
+        self.ui.page_route_ending_detector.currentTextChanged.connect(self.ending_detector_changed)
 
         # Split Options
         self.ui.page_route_split_option_name.textEdited.connect(self.name_edited)
@@ -32,9 +34,6 @@ class PageRoute(QObject):
         self.ui.page_route_split_option_expected_loads.valueChanged.connect(self.expected_loads_changed)
         self.ui.page_route_split_option_load_type.currentTextChanged.connect(self.load_type_changed)
         self.ui.page_route_split_option_split_action.currentTextChanged.connect(self.split_action_changed)
-
-        # Ending Detector Options
-        self.ui.page_route_ending_detector.currentTextChanged.connect(self.ending_detector_changed)
 
     def set_montserrat_fonts(self):
         """Set Montserrat font for all route page elements with larger size"""
@@ -54,19 +53,24 @@ class PageRoute(QObject):
         self.ui.page_route_save_route_as_btn.setFont(montserrat_font)
         
         # Set font for titles
-        self.ui.page_route_start_detector_title.setFont(title_montserrat_font)
+        self.ui.page_route_route_options_title.setFont(title_montserrat_font)
         self.ui.page_route_split_options_title.setFont(title_montserrat_font)
-        self.ui.page_route_ending_detector_title.setFont(title_montserrat_font)
+        
+        # Set font for detector labels
+        self.ui.page_route_reset_detector_label.setFont(small_montserrat_font)
+        self.ui.page_route_start_detector_label.setFont(small_montserrat_font)
+        self.ui.page_route_ending_detector_label.setFont(small_montserrat_font)
         
         # Set font for input fields
+        self.ui.page_route_reset_detector.setFont(small_montserrat_font)
         self.ui.page_route_start_detector.setFont(small_montserrat_font)
+        self.ui.page_route_ending_detector.setFont(small_montserrat_font)
         self.ui.page_route_split_option_name.setFont(small_montserrat_font)
         self.ui.page_route_split_option_split.setFont(small_montserrat_font)
         self.ui.page_route_split_option_reset_count.setFont(small_montserrat_font)
         self.ui.page_route_split_option_expected_loads.setFont(small_montserrat_font)
         self.ui.page_route_split_option_load_type.setFont(small_montserrat_font)
         self.ui.page_route_split_option_split_action.setFont(small_montserrat_font)
-        self.ui.page_route_ending_detector.setFont(small_montserrat_font)
 
         # Set font for labels in split options grid
         for i in range(self.ui.page_route_split_options_layout.count()):
@@ -87,17 +91,22 @@ class PageRoute(QObject):
         self.ui.page_route_load_route_btn.setFont(montserrat_font)
         self.ui.page_route_save_route_btn.setFont(montserrat_font)
         self.ui.page_route_save_route_as_btn.setFont(montserrat_font)
-        self.ui.page_route_start_detector_title.setFont(title_montserrat_font)
+        self.ui.page_route_route_options_title.setFont(title_montserrat_font)
         self.ui.page_route_split_options_title.setFont(title_montserrat_font)
-        self.ui.page_route_ending_detector_title.setFont(title_montserrat_font)
+        
+        self.ui.page_route_reset_detector_label.setFont(small_montserrat_font)
+        self.ui.page_route_start_detector_label.setFont(small_montserrat_font)
+        self.ui.page_route_ending_detector_label.setFont(small_montserrat_font)
+        
+        self.ui.page_route_reset_detector.setFont(small_montserrat_font)
         self.ui.page_route_start_detector.setFont(small_montserrat_font)
+        self.ui.page_route_ending_detector.setFont(small_montserrat_font)
         self.ui.page_route_split_option_name.setFont(small_montserrat_font)
         self.ui.page_route_split_option_split.setFont(small_montserrat_font)
         self.ui.page_route_split_option_reset_count.setFont(small_montserrat_font)
         self.ui.page_route_split_option_expected_loads.setFont(small_montserrat_font)
         self.ui.page_route_split_option_load_type.setFont(small_montserrat_font)
         self.ui.page_route_split_option_split_action.setFont(small_montserrat_font)
-        self.ui.page_route_ending_detector.setFont(small_montserrat_font)
 
     def add_split_clicked(self):
         if RouteHandler.route is None:
@@ -144,9 +153,8 @@ class PageRoute(QObject):
                 item.setBackground(QColor(50, 35, 40))
                 self.ui.route_splits_list.addItem(item)
 
-        self.update_start_detector_widgets()
+        self.update_route_option_widgets()
         self.update_split_option_widgets()
-        self.update_ending_detector_widgets()
 
     def apply_changes_to_route(self):
         if RouteHandler.route is None:
@@ -172,18 +180,26 @@ class PageRoute(QObject):
         RouteHandler.route.splits = splits
         self.sig_route_modified.emit()
 
-    # Start Detector Options
+    # Route Options - New methods for top section
+    def reset_detector_changed(self):
+        """Handle reset detector changes and save immediately"""
+        if RouteHandler.route is not None and not self.updating_widgets:
+            RouteHandler.route.reset_detector = self.ui.page_route_reset_detector.currentText().lower().replace(' ', '_')
+            self.apply_changes_to_route()
+
     def start_detector_changed(self):
+        """Handle start detector changes and save immediately"""
         if RouteHandler.route is not None and not self.updating_widgets:
             RouteHandler.route.start_detector = self.ui.page_route_start_detector.currentText().lower().replace(' ', '_')
             self.apply_changes_to_route()
 
-    # Ending Detector Options
     def ending_detector_changed(self):
+        """Handle ending detector changes and save immediately"""
         if RouteHandler.route is not None and not self.updating_widgets:
             RouteHandler.route.ending_detector = self.ui.page_route_ending_detector.currentText().lower().replace(' ', '_')
             self.apply_changes_to_route()
 
+    # Split Options
     def name_edited(self):
         if hasattr(self, 'selected_split') and self.selected_split and not self.updating_widgets:
             new_name = self.ui.page_route_split_option_name.text()
@@ -221,6 +237,7 @@ class PageRoute(QObject):
             self.apply_changes_to_route()
 
     def load_type_changed(self):
+        """Handle load type dropdown changes and save immediately"""
         if hasattr(self, 'selected_split') and self.selected_split and not self.updating_widgets:
             load_type_text = self.ui.page_route_split_option_load_type.currentText()
             # Map display text to internal load type
@@ -232,9 +249,10 @@ class PageRoute(QObject):
             }
             load_type = load_type_map.get(load_type_text, "regular_fade")
             self.selected_split.load_type = load_type
-            self.apply_changes_to_route()
+            self.apply_changes_to_route()  # Save immediately
 
     def split_action_changed(self):
+        """Handle split action dropdown changes and save immediately"""
         if hasattr(self, 'selected_split') and self.selected_split and not self.updating_widgets:
             split_action_text = self.ui.page_route_split_option_split_action.currentText()
             # Map display text to internal split action
@@ -244,25 +262,62 @@ class PageRoute(QObject):
             }
             split_action = split_action_map.get(split_action_text, "split")
             self.selected_split.split_action = split_action
-            self.apply_changes_to_route()
+            self.apply_changes_to_route()  # Save immediately
 
-    def update_start_detector_widgets(self):
+    def update_route_option_widgets(self):
+        """Update the route option widgets at the top of the page"""
         if RouteHandler.route is None:
-            # Disable start detector if no route
-            self.ui.page_route_start_detector_title.setEnabled(False)
+            # Disable route options if no route
+            self.ui.page_route_route_options_title.setEnabled(False)
+            self.ui.page_route_reset_detector_label.setEnabled(False)
+            self.ui.page_route_reset_detector.setEnabled(False)
+            self.ui.page_route_start_detector_label.setEnabled(False)
             self.ui.page_route_start_detector.setEnabled(False)
+            self.ui.page_route_ending_detector_label.setEnabled(False)
+            self.ui.page_route_ending_detector.setEnabled(False)
             return
 
-        # Enable start detector
-        self.ui.page_route_start_detector_title.setEnabled(True)
+        # Enable route options
+        self.ui.page_route_route_options_title.setEnabled(True)
+        self.ui.page_route_reset_detector_label.setEnabled(True)
+        self.ui.page_route_reset_detector.setEnabled(True)
+        self.ui.page_route_start_detector_label.setEnabled(True)
         self.ui.page_route_start_detector.setEnabled(True)
+        self.ui.page_route_ending_detector_label.setEnabled(True)
+        self.ui.page_route_ending_detector.setEnabled(True)
+
+        self.updating_widgets = True
+
+        # Reset Detector
+        self.ui.page_route_reset_detector.clear()
+        self.ui.page_route_reset_detector.addItems(["Manual", "Title Screen", "Super Guide", "Menu"])
+        if hasattr(RouteHandler.route, 'reset_detector') and RouteHandler.route.reset_detector:
+            reset_detector_value = RouteHandler.route.reset_detector
+            # Handle both string and list types for backward compatibility
+            if isinstance(reset_detector_value, list):
+                reset_detector_value = reset_detector_value[0] if reset_detector_value else "manual"
+            reset_detector_display = reset_detector_value.replace('_', ' ').title()
+            index = self.ui.page_route_reset_detector.findText(reset_detector_display)
+            if index >= 0:
+                self.ui.page_route_reset_detector.setCurrentIndex(index)
+            else:
+                # Default to manual if not found
+                self.ui.page_route_reset_detector.setCurrentIndex(0)
+                RouteHandler.route.reset_detector = "manual"
+        else:
+            # Set default if not set
+            self.ui.page_route_reset_detector.setCurrentIndex(0)
+            RouteHandler.route.reset_detector = "manual"
 
         # Start Detector
-        self.updating_widgets = True
         self.ui.page_route_start_detector.clear()
-        self.ui.page_route_start_detector.addItems(["Manual", "File Select", "1-1 Text"])
+        self.ui.page_route_start_detector.addItems(["Manual", "File Select", "1-1 Text", "Switch Hit"])
         if hasattr(RouteHandler.route, 'start_detector') and RouteHandler.route.start_detector:
-            start_detector_display = RouteHandler.route.start_detector.replace('_', ' ').title()
+            start_detector_value = RouteHandler.route.start_detector
+            # Handle both string and list types for backward compatibility
+            if isinstance(start_detector_value, list):
+                start_detector_value = start_detector_value[0] if start_detector_value else "manual"
+            start_detector_display = start_detector_value.replace('_', ' ').title()
             index = self.ui.page_route_start_detector.findText(start_detector_display)
             if index >= 0:
                 self.ui.page_route_start_detector.setCurrentIndex(index)
@@ -274,25 +329,16 @@ class PageRoute(QObject):
             # Set default if not set
             self.ui.page_route_start_detector.setCurrentIndex(0)
             RouteHandler.route.start_detector = "manual"
-        self.updating_widgets = False
-
-    def update_ending_detector_widgets(self):
-        if RouteHandler.route is None:
-            # Disable ending detector if no route
-            self.ui.page_route_ending_detector_title.setEnabled(False)
-            self.ui.page_route_ending_detector.setEnabled(False)
-            return
-
-        # Enable ending detector
-        self.ui.page_route_ending_detector_title.setEnabled(True)
-        self.ui.page_route_ending_detector.setEnabled(True)
 
         # Ending Detector
-        self.updating_widgets = True
         self.ui.page_route_ending_detector.clear()
         self.ui.page_route_ending_detector.addItems(["Manual", "Switch Hit"])
         if hasattr(RouteHandler.route, 'ending_detector') and RouteHandler.route.ending_detector:
-            ending_detector_display = RouteHandler.route.ending_detector.replace('_', ' ').title()
+            ending_detector_value = RouteHandler.route.ending_detector
+            # Handle both string and list types for backward compatibility
+            if isinstance(ending_detector_value, list):
+                ending_detector_value = ending_detector_value[0] if ending_detector_value else "manual"
+            ending_detector_display = ending_detector_value.replace('_', ' ').title()
             index = self.ui.page_route_ending_detector.findText(ending_detector_display)
             if index >= 0:
                 self.ui.page_route_ending_detector.setCurrentIndex(index)
@@ -304,6 +350,7 @@ class PageRoute(QObject):
             # Set default if not set
             self.ui.page_route_ending_detector.setCurrentIndex(0)
             RouteHandler.route.ending_detector = "manual"
+
         self.updating_widgets = False
 
     def update_split_option_widgets(self):
