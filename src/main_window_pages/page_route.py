@@ -13,6 +13,7 @@ class PageRoute(QObject):
         self.ui = ui
         self.selected_widget = None
         self.selected_split = None
+        self.updating_widgets = False  # Flag to prevent recursive updates
 
         # Set Montserrat font for all route elements with larger font size
         self.set_montserrat_fonts()
@@ -173,18 +174,18 @@ class PageRoute(QObject):
 
     # Start Detector Options
     def start_detector_changed(self):
-        if RouteHandler.route is not None:
+        if RouteHandler.route is not None and not self.updating_widgets:
             RouteHandler.route.start_detector = self.ui.page_route_start_detector.currentText().lower().replace(' ', '_')
             self.apply_changes_to_route()
 
     # Ending Detector Options
     def ending_detector_changed(self):
-        if RouteHandler.route is not None:
+        if RouteHandler.route is not None and not self.updating_widgets:
             RouteHandler.route.ending_detector = self.ui.page_route_ending_detector.currentText().lower().replace(' ', '_')
             self.apply_changes_to_route()
 
     def name_edited(self):
-        if hasattr(self, 'selected_split') and self.selected_split:
+        if hasattr(self, 'selected_split') and self.selected_split and not self.updating_widgets:
             new_name = self.ui.page_route_split_option_name.text()
             self.selected_split.name = new_name
             
@@ -198,12 +199,12 @@ class PageRoute(QObject):
             self.apply_changes_to_route()
 
     def split_toggled(self):
-        if hasattr(self, 'selected_split') and self.selected_split:
+        if hasattr(self, 'selected_split') and self.selected_split and not self.updating_widgets:
             self.selected_split.split = self.ui.page_route_split_option_split.isChecked()
             self.apply_changes_to_route()
 
     def expected_loads_changed(self, value):
-        if hasattr(self, 'selected_split') and self.selected_split:
+        if hasattr(self, 'selected_split') and self.selected_split and not self.updating_widgets:
             self.selected_split.expected_loads = value
             
             # Update the list item immediately to show new load count
@@ -215,12 +216,12 @@ class PageRoute(QObject):
             self.apply_changes_to_route()
 
     def reset_count_toggled(self):
-        if hasattr(self, 'selected_split') and self.selected_split:
+        if hasattr(self, 'selected_split') and self.selected_split and not self.updating_widgets:
             self.selected_split.reset_load_count = self.ui.page_route_split_option_reset_count.isChecked()
             self.apply_changes_to_route()
 
     def load_type_changed(self):
-        if hasattr(self, 'selected_split') and self.selected_split:
+        if hasattr(self, 'selected_split') and self.selected_split and not self.updating_widgets:
             load_type_text = self.ui.page_route_split_option_load_type.currentText()
             # Map display text to internal load type
             load_type_map = {
@@ -234,7 +235,7 @@ class PageRoute(QObject):
             self.apply_changes_to_route()
 
     def split_action_changed(self):
-        if hasattr(self, 'selected_split') and self.selected_split:
+        if hasattr(self, 'selected_split') and self.selected_split and not self.updating_widgets:
             split_action_text = self.ui.page_route_split_option_split_action.currentText()
             # Map display text to internal split action
             split_action_map = {
@@ -257,6 +258,7 @@ class PageRoute(QObject):
         self.ui.page_route_start_detector.setEnabled(True)
 
         # Start Detector
+        self.updating_widgets = True
         self.ui.page_route_start_detector.clear()
         self.ui.page_route_start_detector.addItems(["Manual", "File Select", "1-1 Text"])
         if hasattr(RouteHandler.route, 'start_detector') and RouteHandler.route.start_detector:
@@ -272,6 +274,7 @@ class PageRoute(QObject):
             # Set default if not set
             self.ui.page_route_start_detector.setCurrentIndex(0)
             RouteHandler.route.start_detector = "manual"
+        self.updating_widgets = False
 
     def update_ending_detector_widgets(self):
         if RouteHandler.route is None:
@@ -285,6 +288,7 @@ class PageRoute(QObject):
         self.ui.page_route_ending_detector.setEnabled(True)
 
         # Ending Detector
+        self.updating_widgets = True
         self.ui.page_route_ending_detector.clear()
         self.ui.page_route_ending_detector.addItems(["Manual", "Switch Hit"])
         if hasattr(RouteHandler.route, 'ending_detector') and RouteHandler.route.ending_detector:
@@ -300,6 +304,7 @@ class PageRoute(QObject):
             # Set default if not set
             self.ui.page_route_ending_detector.setCurrentIndex(0)
             RouteHandler.route.ending_detector = "manual"
+        self.updating_widgets = False
 
     def update_split_option_widgets(self):
         if not hasattr(self, 'selected_split') or self.selected_split is None:
@@ -313,12 +318,14 @@ class PageRoute(QObject):
             self.ui.page_route_split_option_split_action.setEnabled(False)
             
             # Clear values
+            self.updating_widgets = True
             self.ui.page_route_split_option_name.clear()
             self.ui.page_route_split_option_split.setChecked(True)
             self.ui.page_route_split_option_reset_count.setChecked(True)
             self.ui.page_route_split_option_expected_loads.setValue(0)
             self.ui.page_route_split_option_load_type.setCurrentIndex(0)
             self.ui.page_route_split_option_split_action.setCurrentIndex(0)
+            self.updating_widgets = False
             return
 
         # Enable split options
@@ -330,6 +337,9 @@ class PageRoute(QObject):
         self.ui.page_route_split_option_load_type.setEnabled(True)
         self.ui.page_route_split_option_split_action.setEnabled(True)
 
+        # Update all widgets with current split data
+        self.updating_widgets = True
+        
         # Name
         self.ui.page_route_split_option_name.setText(self.selected_split.name)
 
@@ -367,3 +377,5 @@ class PageRoute(QObject):
                 self.ui.page_route_split_option_split_action.setCurrentIndex(0)
         else:
             self.ui.page_route_split_option_split_action.setCurrentIndex(0)
+            
+        self.updating_widgets = False

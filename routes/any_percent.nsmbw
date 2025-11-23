@@ -11,7 +11,7 @@
             "split": true,
             "reset_load_count": true,
             "expected_loads": 2,
-            "load_type": "regular_fade",
+            "load_type": "tower_castle",
             "split_action": "split"
         },
         {
@@ -81,7 +81,7 @@
             "split": true,
             "reset_load_count": true,
             "expected_loads": 3,
-            "load_type": "regular_fade",
+            "load_type": "tower_castle",
             "split_action": "split"
         },
         {
@@ -91,7 +91,7 @@
             "split": true,
             "reset_load_count": true,
             "expected_loads": 4,
-            "load_type": "tower_castle",
+            "load_type": "ghost_house",
             "split_action": "split"
         },
         {
